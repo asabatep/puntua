@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calculadora castellera</title>
+  <style>
+    html, body { margin: 0; background: #FAF8F4; }
+  </style>
+</head>
+<body style="background:#FAF8F4;">
+  <div id="root"></div>
+
+  <!-- React itself -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel: transforms JSX into plain JS right in the browser -->
+  <script src="https://unpkg.com/@babel/standalone@8/babel.min.js"></script>
+
+  <!-- Fetch the component, transform it ourselves (forcing the "classic" JSX
+       runtime so Babel doesn't inject a real `import` for react/jsx-runtime
+       into the output, which would break since this isn't a module script),
+       then run the result plus the mount code as one classic script. -->
+  <script>
+    (async function () {
+      const source = await fetch("comptador-castells.jsx").then((r) => r.text());
+      const mount = `
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<ComptadorCastells />);
+      `;
+      const { code } = Babel.transform(source + "\n" + mount, {
+        presets: [["react", { runtime: "classic" }]],
+        filename: "comptador-castells.jsx",
+      });
+      const script = document.createElement("script");
+      script.text = code;
+      document.body.appendChild(script);
+    })();
+  </script>
+</body>
+</html>
