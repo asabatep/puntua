@@ -505,6 +505,60 @@ async function decodeShare(frag) {
   }
 }
 
+// --- Persistencia local (localStorage) ---
+// Desa l'ultim estat perque en tornar a obrir l'app (p. ex. instal·lada com a
+// PWA) es recuperi tal com es va deixar. Mateix format { taulaId, acts } que
+// decodeShare/EXEMPLES.
+const STORAGE_KEY = "puntua:estat:v1";
+
+function carregaStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && Array.isArray(data.acts) ? data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function desaStorage(taulaId, actuacions) {
+  try {
+    const acts = actuacions.map((a) => ({
+      nom: a.nom,
+      color: a.color,
+      castellKeys: a.castells.map((c) => nomCastell(c) + (c.descarregat ? "" : "!")),
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ taulaId, acts }));
+  } catch (e) {
+    /* localStorage no disponible (mode privat, quota exhaurida, etc.) */
+  }
+}
+
+// Reconstrueix actuacions { id, nom, color, castells } a partir del format
+// { nom, color, castellKeys } (enllaç, exemple o localStorage), normalitzant
+// cada castell contra la taula donada.
+function construeixActuacions(taula, acts, novaId) {
+  return acts.map((a) => ({
+    id: novaId(),
+    nom: a.nom,
+    color: a.color,
+    castells: (a.castellKeys || [])
+      .map((raw) => {
+        const carregat = raw.endsWith("!");
+        const p = parseKey(carregat ? raw.slice(0, -1) : raw);
+        if (!p) return null;
+        const c = normalitza(taula.castells, {
+          id: novaId(),
+          ...p,
+          descarregat: !carregat,
+        });
+        return c.pisos ? c : null;
+      })
+      .filter(Boolean),
+  }));
+}
+
 // Exemples precarregats. Mateix format que decodeShare: castellKeys amb "!"
 // al final si el castell va carregat (per defecte, descarregat).
 const EXEMPLES = [
@@ -582,7 +636,15 @@ function ComptadorCastells() {
   const idRef = useRef(1);
   const novaId = () => idRef.current++;
 
-  const [taulaId, setTaulaId] = useState(TAULES[0].id);
+  // Si hi ha fragment a la URL, l'estat local es descarta a favor de l'enllaç
+  // (l'hidrata l'efecte de sota, de manera asincrona).
+  const teFragUrl = !!location.hash;
+
+  const [taulaId, setTaulaId] = useState(() => {
+    if (teFragUrl) return TAULES[0].id;
+    const desat = carregaStorage();
+    return desat && TAULES.some((t) => t.id === desat.taulaId) ? desat.taulaId : TAULES[0].id;
+  });
   const taula = useMemo(
     () => TAULES.find((t) => t.id === taulaId) ?? TAULES[0],
     [taulaId]
@@ -593,52 +655,62 @@ function ComptadorCastells() {
   const nouCastell = () =>
     normalitza(castells, { id: novaId(), persones: "3", pisos: "8", variant: "", descarregat: true });
 
-  const [actuacions, setActuacions] = useState(() => [
-    { id: novaId(), nom: "Actuació 1", color: "#7E1B2A", castells: [] },
-  ]);
+  const [actuacions, setActuacions] = useState(() => {
+    const buit = [{ id: novaId(), nom: "Actuació 1", color: "#7E1B2A", castells: [] }];
+    if (teFragUrl) return buit;
+    const desat = carregaStorage();
+    if (!desat) return buit;
+    const t = TAULES.find((x) => x.id === desat.taulaId) ?? TAULES[0];
+    return construeixActuacions(t, desat.acts, novaId);
+  });
 
   const [mostraTaula, setMostraTaula] = useState(false);
   const [copiat, setCopiat] = useState(false);
+
+  // Marca si l'ultim canvi d'estat prove d'una carrega externa (enllaç
+  // compartit o exemple) en lloc d'una edicio de l'usuari; l'efecte de
+  // desat local el consulta per no sobreescriure el que l'usuari tenia
+  // desat nomes per haver obert/mirat un enllaç o exemple.
+  const carregaExternaRef = useRef(teFragUrl);
 
   // Aplica un estat { taulaId, acts:[{nom,color,castellKeys}] } (enllaç o exemple):
   // fixa la taula i reconstrueix les actuacions, normalitzant cada castell.
   const aplicaEstat = (data) => {
     const t = TAULES.find((x) => x.id === data.taulaId) ?? TAULES[0];
+    carregaExternaRef.current = true;
     setTaulaId(t.id);
-    setActuacions(
-      data.acts.map((a) => ({
-        id: novaId(),
-        nom: a.nom,
-        color: a.color,
-        castells: a.castellKeys
-          .map((raw) => {
-            const carregat = raw.endsWith("!");
-            const p = parseKey(carregat ? raw.slice(0, -1) : raw);
-            if (!p) return null;
-            const c = normalitza(t.castells, {
-              id: novaId(),
-              ...p,
-              descarregat: !carregat,
-            });
-            return c.pisos ? c : null;
-          })
-          .filter(Boolean),
-      }))
-    );
+    setActuacions(construeixActuacions(t, data.acts, novaId));
   };
 
-  // Hidrata l'estat des del fragment de la URL (enllaç compartit), un sol cop.
+  // Hidrata l'estat des del fragment de la URL (enllaç compartit): en muntar
+  // i cada cop que canvia el hash (p. ex. s'obre un altre enllaç compartit
+  // amb la pestanya ja carregada, on el navegador no recarrega la pagina).
   useEffect(() => {
-    const frag = location.hash.replace(/^#/, "");
-    if (!frag) return;
     let cancelat = false;
-    decodeShare(frag).then((data) => {
-      if (!cancelat && data) aplicaEstat(data);
-    });
+    const hidrata = () => {
+      const frag = location.hash.replace(/^#/, "");
+      if (!frag) return;
+      decodeShare(frag).then((data) => {
+        if (!cancelat && data) aplicaEstat(data);
+      });
+    };
+    hidrata();
+    window.addEventListener("hashchange", hidrata);
     return () => {
       cancelat = true;
+      window.removeEventListener("hashchange", hidrata);
     };
   }, []);
+
+  // Desa l'estat actual a localStorage a cada canvi, tret que provingui
+  // d'una carrega externa (enllaç o exemple) encara no editada per l'usuari.
+  useEffect(() => {
+    if (carregaExternaRef.current) {
+      carregaExternaRef.current = false;
+      return;
+    }
+    desaStorage(taulaId, actuacions);
+  }, [taulaId, actuacions]);
 
   const carregaExemple = (id) => {
     const ex = EXEMPLES.find((e) => e.id === id);
