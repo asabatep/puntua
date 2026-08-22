@@ -35,14 +35,14 @@
        then run the result plus the mount code as one classic script. -->
   <script>
     (async function () {
-      const source = await fetch("comptador-castells.jsx").then((r) => r.text());
+      const source = await fetch("calculadora.jsx").then((r) => r.text());
       const mount = `
         const root = ReactDOM.createRoot(document.getElementById("root"));
         root.render(<ComptadorCastells />);
       `;
       const { code } = Babel.transform(source + "\n" + mount, {
         presets: [["react", { runtime: "classic" }]],
-        filename: "comptador-castells.jsx",
+        filename: "calculadora.jsx",
       });
       const script = document.createElement("script");
       script.text = code;
