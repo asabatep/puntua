@@ -1123,7 +1123,7 @@ function ComptadorCastells() {
 
         {TAULES.length > 1 && (
           <div className="cc-season-group">
-            <label htmlFor="cc-season-sel">Taula de puntuacions</label>
+            <label htmlFor="cc-season-sel">Taula</label>
             <select
               id="cc-season-sel"
               value={taulaId}
@@ -1140,7 +1140,7 @@ function ComptadorCastells() {
 
         {EXEMPLES.length > 0 && (
           <div className="cc-season-group">
-            <label htmlFor="cc-exemple-sel">Carrega un exemple</label>
+            <label htmlFor="cc-exemple-sel">Carrega exemple</label>
             <select
               id="cc-exemple-sel"
               value=""
