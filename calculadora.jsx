@@ -387,6 +387,23 @@ function puntsCastell(castells, c) {
   return c.descarregat ? fila[1] : fila[0];
 }
 
+// --- Mode concurs ---
+// Al Concurs de Castells nomes puntuen els tres millors castells de l'actuacio;
+// la resta no sumen. Retorna el Set d'ids dels castells que puntuen, o null si
+// el mode es desactivat (llavors puntuen tots).
+const CASTELLS_QUE_PUNTUEN = 3;
+
+function idsQuePuntuen(castells, act, modeConcurs) {
+  if (!modeConcurs) return null;
+  return new Set(
+    act.castells
+      .map((c, i) => [c.id, puntsCastell(castells, c) || 0, i])
+      .sort((a, b) => b[1] - a[1] || a[2] - b[2]) // desempat: ordre d'entrada
+      .slice(0, CASTELLS_QUE_PUNTUEN)
+      .map(([id]) => id)
+  );
+}
+
 const fmt = (n) => (n == null ? "--" : n.toLocaleString("ca-ES"));
 
 // Nom llegible a partir del codi canonic (p. ex. "3de9sf" -> "3 de 9 sense folre")
@@ -409,6 +426,8 @@ const ordenaTaula = (castells) =>
 //   versió | taulaId | actuació | actuació | ...
 // on cada actuació és:  nom(encodeURIComponent) , color(hex) , castell.castell...
 // i cada castell és la clau canònica amb "!" al final si va carregat.
+// El taulaId porta "*" al final si el mode concurs és actiu (els enllaços
+// antics, sense el marcador, es llegeixen igual: mode concurs desactivat).
 const SHARE_VERSION = "1";
 const DEFAULT_COLOR = "#7E1B2A";
 const hasCompression =
@@ -449,7 +468,7 @@ async function inflateFromB64url(b64) {
   return new TextDecoder().decode(buf);
 }
 
-function buildPayload(taulaId, actuacions) {
+function buildPayload(taulaId, modeConcurs, actuacions) {
   const acts = actuacions.map((a) => {
     const cast = a.castells
       .map((c) => nomCastell(c) + (c.descarregat ? "" : "!"))
@@ -457,12 +476,12 @@ function buildPayload(taulaId, actuacions) {
     const color = (a.color || "").replace(/^#/, "");
     return [encodeURIComponent(a.nom || ""), color, cast].join(",");
   });
-  return [SHARE_VERSION, taulaId, ...acts].join("|");
+  return [SHARE_VERSION, taulaId + (modeConcurs ? "*" : ""), ...acts].join("|");
 }
 
 // Retorna el contingut del fragment (sense el #): el més curt entre pla i deflate
-async function encodeShare(taulaId, actuacions) {
-  const payload = buildPayload(taulaId, actuacions);
+async function encodeShare(taulaId, modeConcurs, actuacions) {
+  const payload = buildPayload(taulaId, modeConcurs, actuacions);
   const plain = "d=" + payload;
   if (hasCompression) {
     try {
@@ -475,7 +494,7 @@ async function encodeShare(taulaId, actuacions) {
   return plain;
 }
 
-// Descodifica el fragment -> { taulaId, acts:[{nom,color,castellKeys}] } o null
+// Descodifica el fragment -> { taulaId, modeConcurs, acts:[{nom,color,castellKeys}] } o null
 async function decodeShare(frag) {
   if (!frag) return null;
   try {
@@ -490,7 +509,9 @@ async function decodeShare(frag) {
     }
     const parts = payload.split("|");
     if (parts.shift() !== SHARE_VERSION) return null;
-    const taulaId = parts.shift();
+    const taulaSeg = parts.shift() ?? "";
+    const modeConcurs = taulaSeg.endsWith("*");
+    const taulaId = modeConcurs ? taulaSeg.slice(0, -1) : taulaSeg;
     const acts = parts.map((seg) => {
       const [name = "", color = "", cast = ""] = seg.split(",");
       return {
@@ -499,7 +520,7 @@ async function decodeShare(frag) {
         castellKeys: cast.split(".").filter(Boolean),
       };
     });
-    return { taulaId, acts };
+    return { taulaId, modeConcurs, acts };
   } catch (e) {
     return null;
   }
@@ -507,8 +528,8 @@ async function decodeShare(frag) {
 
 // --- Persistencia local (localStorage) ---
 // Desa l'ultim estat perque en tornar a obrir l'app (p. ex. instal·lada com a
-// PWA) es recuperi tal com es va deixar. Mateix format { taulaId, acts } que
-// decodeShare/EXEMPLES.
+// PWA) es recuperi tal com es va deixar. Mateix format { taulaId, modeConcurs,
+// acts } que decodeShare/EXEMPLES.
 const STORAGE_KEY = "puntua:estat:v1";
 
 function carregaStorage() {
@@ -522,14 +543,14 @@ function carregaStorage() {
   }
 }
 
-function desaStorage(taulaId, actuacions) {
+function desaStorage(taulaId, modeConcurs, actuacions) {
   try {
     const acts = actuacions.map((a) => ({
       nom: a.nom,
       color: a.color,
       castellKeys: a.castells.map((c) => nomCastell(c) + (c.descarregat ? "" : "!")),
     }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ taulaId, acts }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ taulaId, modeConcurs, acts }));
   } catch (e) {
     /* localStorage no disponible (mode privat, quota exhaurida, etc.) */
   }
@@ -728,6 +749,12 @@ function ComptadorCastells() {
     return construeixActuacions(t, desat.acts, novaId);
   });
 
+  // Mode concurs: nomes puntuen els tres millors castells de cada actuacio.
+  const [modeConcurs, setModeConcurs] = useState(() => {
+    if (teFragUrl) return false;
+    return !!carregaStorage()?.modeConcurs;
+  });
+
   const [mostraTaula, setMostraTaula] = useState(false);
   const [copiat, setCopiat] = useState(false);
 
@@ -737,12 +764,15 @@ function ComptadorCastells() {
   // desat nomes per haver obert/mirat un enllaç o exemple.
   const carregaExternaRef = useRef(teFragUrl);
 
-  // Aplica un estat { taulaId, acts:[{nom,color,castellKeys}] } (enllaç o exemple):
-  // fixa la taula i reconstrueix les actuacions, normalitzant cada castell.
+  // Aplica un estat { taulaId, modeConcurs, acts:[{nom,color,castellKeys}] }
+  // (enllaç o exemple): fixa la taula i reconstrueix les actuacions,
+  // normalitzant cada castell. Els exemples no porten modeConcurs i, per tant,
+  // respecten el que l'usuari tingui triat; els enllaços sempre el porten.
   const aplicaEstat = (data) => {
     const t = TAULES.find((x) => x.id === data.taulaId) ?? TAULES[0];
     carregaExternaRef.current = true;
     setTaulaId(t.id);
+    if (data.modeConcurs != null) setModeConcurs(data.modeConcurs);
     setActuacions(construeixActuacions(t, data.acts, novaId));
   };
 
@@ -773,8 +803,8 @@ function ComptadorCastells() {
       carregaExternaRef.current = false;
       return;
     }
-    desaStorage(taulaId, actuacions);
-  }, [taulaId, actuacions]);
+    desaStorage(taulaId, modeConcurs, actuacions);
+  }, [taulaId, modeConcurs, actuacions]);
 
   const carregaExemple = (id) => {
     const ex = EXEMPLES.find((e) => e.id === id);
@@ -783,7 +813,7 @@ function ComptadorCastells() {
 
   // Construeix l'enllaç compartible, l'escriu a la barra d'adreces i el copia.
   const compartir = async () => {
-    const frag = await encodeShare(taulaId, actuacions);
+    const frag = await encodeShare(taulaId, modeConcurs, actuacions);
     const url =
       location.origin + location.pathname + location.search + "#" + frag;
     history.replaceState(null, "", "#" + frag);
@@ -856,15 +886,21 @@ function ComptadorCastells() {
       )
     );
 
-  const totalActuacio = (act) =>
-    act.castells.reduce((s, c) => s + (puntsCastell(castells, c) || 0), 0);
+  const totalActuacio = (act) => {
+    const puntuen = idsQuePuntuen(castells, act, modeConcurs);
+    return act.castells.reduce(
+      (s, c) =>
+        puntuen && !puntuen.has(c.id) ? s : s + (puntsCastell(castells, c) || 0),
+      0
+    );
+  };
 
   const classificacio = useMemo(
     () =>
       actuacions
         .map((a) => ({ id: a.id, nom: a.nom, total: totalActuacio(a) }))
         .sort((x, y) => y.total - x.total),
-    [actuacions, castells]
+    [actuacions, castells, modeConcurs]
   );
 
   return (
@@ -899,6 +935,7 @@ function ComptadorCastells() {
       <div className="cc-grid">
         {actuacions.map((act) => {
           const total = totalActuacio(act);
+          const puntuen = idsQuePuntuen(castells, act, modeConcurs);
           return (
             <section className="cc-card" key={act.id}>
               <div className="cc-card-top">
@@ -941,6 +978,7 @@ function ComptadorCastells() {
 
                 {act.castells.map((c) => {
                   const punts = puntsCastell(castells, c);
+                  const puntua = !puntuen || puntuen.has(c.id);
                   return (
                     <div className="cc-row" key={c.id}>
                       <div className="cc-selects">
@@ -1002,7 +1040,16 @@ function ComptadorCastells() {
 
                       <div className="cc-rowend">
                         <code className="cc-codi">{nomCastell(c)}</code>
-                        <span className="cc-pts">{fmt(punts)}</span>
+                        <span
+                          className={puntua ? "cc-pts" : "cc-pts cc-pts-no"}
+                          title={
+                            puntua
+                              ? undefined
+                              : `No puntua: en mode concurs només compten els ${CASTELLS_QUE_PUNTUEN} millors castells de l'actuació.`
+                          }
+                        >
+                          {fmt(punts)}
+                        </span>
                         <button
                           className="cc-x"
                           title="Treure castell"
@@ -1056,46 +1103,61 @@ function ComptadorCastells() {
         </a>
       </div>
 
-      {(TAULES.length > 1 || EXEMPLES.length > 0) && (
-        <div className="cc-season">
-          {TAULES.length > 1 && (
-            <div className="cc-season-group">
-              <label htmlFor="cc-season-sel">Taula de puntuacions</label>
-              <select
-                id="cc-season-sel"
-                value={taulaId}
-                onChange={(e) => canviarTaula(e.target.value)}
-              >
-                {TAULES.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {EXEMPLES.length > 0 && (
-            <div className="cc-season-group">
-              <label htmlFor="cc-exemple-sel">Carrega un exemple</label>
-              <select
-                id="cc-exemple-sel"
-                value=""
-                onChange={(e) => carregaExemple(e.target.value)}
-              >
-                <option value="" disabled>
-                  Trieu…
-                </option>
-                {EXEMPLES.map((ex) => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+      <div className="cc-season">
+        <div className="cc-season-group">
+          <label
+            className="cc-switch"
+            title={`Mode concurs: de cada actuació només puntuen els ${CASTELLS_QUE_PUNTUEN} millors castells.`}
+          >
+            <input
+              type="checkbox"
+              checked={modeConcurs}
+              onChange={(e) => setModeConcurs(e.target.checked)}
+            />
+            <span className="cc-switch-track">
+              <span className="cc-switch-thumb" />
+            </span>
+            <span className="cc-switch-lab">Mode concurs</span>
+          </label>
         </div>
-      )}
+
+        {TAULES.length > 1 && (
+          <div className="cc-season-group">
+            <label htmlFor="cc-season-sel">Taula de puntuacions</label>
+            <select
+              id="cc-season-sel"
+              value={taulaId}
+              onChange={(e) => canviarTaula(e.target.value)}
+            >
+              {TAULES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {EXEMPLES.length > 0 && (
+          <div className="cc-season-group">
+            <label htmlFor="cc-exemple-sel">Carrega un exemple</label>
+            <select
+              id="cc-exemple-sel"
+              value=""
+              onChange={(e) => carregaExemple(e.target.value)}
+            >
+              <option value="" disabled>
+                Trieu…
+              </option>
+              {EXEMPLES.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {mostraTaula && (
         <section className="cc-taula" aria-label="Taula de puntuacions">
@@ -1145,6 +1207,7 @@ const CSS = `
 .cc-root{
   --paper:#FAF8F4; --surface:#FFFFFF; --ink:#1C1A17; --muted:#6B645C;
   --line:#E2DACC; --granat:#7E1B2A; --granat-soft:#F3E4E1; --ochre:#B7791F;
+  --red:#C0392B;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color:var(--ink); background:var(--paper);
   min-height:100%; padding:24px 16px 56px; box-sizing:border-box;
@@ -1218,6 +1281,23 @@ const CSS = `
 }
 .cc-season select:focus{border-color:var(--granat);}
 
+/* Interruptor del mode concurs */
+.cc-switch{position:relative; display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none;}
+.cc-switch input{position:absolute; width:0; height:0; opacity:0;}
+.cc-switch-track{
+  position:relative; flex-shrink:0; width:38px; height:22px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--line); transition:background .15s,border-color .15s;
+}
+.cc-switch-thumb{
+  position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+  background:var(--muted); transition:transform .15s,background .15s;
+}
+.cc-switch:hover .cc-switch-track{border-color:var(--granat);}
+.cc-switch input:checked+.cc-switch-track{background:var(--granat); border-color:var(--granat);}
+.cc-switch input:checked+.cc-switch-track .cc-switch-thumb{transform:translateX(16px); background:#fff;}
+.cc-switch input:focus-visible+.cc-switch-track{outline:2px solid var(--granat); outline-offset:2px;}
+.cc-switch input:checked~.cc-switch-lab{color:var(--granat);}
+
 .cc-grid{max-width:880px; margin:0 auto; display:flex; flex-direction:column; gap:18px;}
 
 .cc-card{
@@ -1270,6 +1350,7 @@ const CSS = `
   border:1px solid var(--line); border-radius:6px; padding:2px 7px;
 }
 .cc-pts{font-size:18px; font-weight:700; min-width:62px; text-align:right;}
+.cc-pts-no{color:var(--red); text-decoration:line-through;}
 
 .cc-x{
   border:none; background:transparent; color:var(--muted); cursor:pointer;
