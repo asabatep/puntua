@@ -563,6 +563,38 @@ function construeixActuacions(taula, acts, novaId) {
 // al final si el castell va carregat (per defecte, descarregat).
 const EXEMPLES = [
   {
+    id: "sant-magi-2026",
+    label: "Sant Magí 2026",
+    data: {
+      taulaId: "2026",
+      acts: [
+        { nom: "Xiquets de Tarragona", color: "#a23047",
+          castellKeys: ["7de8", "4de9f", "3de8"] },
+        { nom: "Colla Jove Xiquets de Tarragona", color: "#b588f2",
+          castellKeys: ["2de9fm", "5de9f", "3de9f", "Pde6"] },
+        { nom: "Xiquets del Serrallo", color: "#253271",
+          castellKeys: ["4de8", "3de8", "2de7"] },
+        { nom: "Colla Castellera de Sant Pere i Sant Pau", color: "#00bda2",
+          castellKeys: ["5de8", "4de8a", "3de8"] },
+      ],
+    },
+  },
+  {
+    id: "el-catllar-2026",
+    label: "Diada el Catllar 2026",
+    data: {
+      taulaId: "2026",
+      acts: [
+        { nom: "Castellers de Vilafranca", color: "#00CC99",
+          castellKeys: ["3de9fa", "5de9f", "4de9fa", "Pde8fm"] },
+        { nom: "Colla Jove Xiquets de Tarragona", color: "#b588f2",
+          castellKeys: ["5de9f", "2de9fm", "4de9fa!", "Pde8fm!"] },
+        { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
+          castellKeys: ["5de9f", "4de9sf", "4de9fa", "Pde8fm"] },
+      ],
+    },
+  },
+  {
     id: "sant-felix-2025",
     label: "Sant Fèlix 2025",
     data: {
@@ -604,6 +636,38 @@ const EXEMPLES = [
           castellKeys: ["3de9f", "4de9f", "5de8"] },
         { nom: "Capgrossos de Mataró", color: "#20418b",
           castellKeys: ["3de9f", "5de9f!", "4de8", "Pde5", "Pde5"] },
+      ],
+    },
+  },
+  {
+    id: "sant-felix-2013",
+    label: "Sant Fèlix 2013",
+    data: {
+      taulaId: "2010",
+      acts: [
+        { nom: "Castellers de Vilafranca", color: "#00CC99",
+          castellKeys: ["4de9fa", "3de10fm", "4de9sf", "Pde8fm"] },
+        { nom: "Colla Joves Xiquets de Valls", color: "#d71418",
+          castellKeys: ["3de9f", "5de9f", "4de9f"] },
+        { nom: "Minyons de Terrassa", color: "#ceaad4",
+          castellKeys: ["2de9fm!", "3de9f", "4de9f!"] },
+        { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
+          castellKeys: ["3de9f", "2de9fm!", "4de9f!", "Pde8fm!"] },
+      ],
+    },
+  },
+  {
+    id: "minyons-terrassa-1998",
+    label: "Diada dels Minyons 1998",
+    data: {
+      taulaId: "2000",
+      acts: [
+        { nom: "Minyons de Terrassa", color: "#ceaad4",
+          castellKeys: ["3de10fm", "5de9f", "4de9f", "Pde7f!"] },
+        { nom: "Castellers de Barcelona", color: "#c8102e",
+          castellKeys: ["4de9f!", "2de8f!", "9de7"] },
+        { nom: "Xics de Granollers", color: "#00693e",
+          castellKeys: ["3de8!", "4de7a", "2de7"] },
       ],
     },
   },
