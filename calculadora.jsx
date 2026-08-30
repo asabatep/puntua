@@ -584,6 +584,23 @@ function construeixActuacions(taula, acts, novaId) {
 // al final si el castell va carregat (per defecte, descarregat).
 const EXEMPLES = [
   {
+    id: "sant-felix-2026",
+    label: "Sant Fèlix 2026",
+    data: {
+      taulaId: "2026",
+      acts: [
+        { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
+          castellKeys: ["4de9sf", "4de10fm!", "4de9fa", "Pde8fm"] },
+        { nom: "Colla Jove Xiquets de Tarragona", color: "#b588f2",
+          castellKeys: ["5de9f", "3de10fm", "2de9fm", "Pde8fm"] },
+        { nom: "Castellers de Vilafranca", color: "#00CC99",
+          castellKeys: ["3de10fm", "4de10fm!", "3de9fa", "Pde9fmp"] },
+        { nom: "Colla Joves Xiquets de Valls", color: "#d71418",
+          castellKeys: ["4de9sf", "2de9fm", "2de8sf!", "Pde8fm"] },
+      ],
+    },
+  },
+  {
     id: "sant-magi-2026",
     label: "Sant Magí 2026",
     data: {
