@@ -581,8 +581,103 @@ function construeixActuacions(taula, acts, novaId) {
 }
 
 // Exemples precarregats. Mateix format que decodeShare: castellKeys amb "!"
-// al final si el castell va carregat (per defecte, descarregat).
+// al final si el castell va carregat (per defecte, descarregat). modeConcurs
+// és opcional: si no hi és, el mode concurs es desactiva en carregar l'exemple.
 const EXEMPLES = [
+  {
+    id: "concurs-2026",
+    label: "Concurs de Castells 2026",
+    data: {
+      taulaId: "2026",
+      modeConcurs: true,
+      acts: [
+        { nom: "Castellers de Vilafranca", color: "#00CC99",
+          castellKeys: ["3de10fm", "4de10fm", "9de9f"] },
+        { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
+          castellKeys: ["4de9sf", "4de10fm!", "3de9sf!"] },
+        { nom: "Colla Jove Xiquets de Tarragona", color: "#b588f2",
+          castellKeys: ["5de9f", "4de10fm!", "2de9fm"] },
+        { nom: "Colla Joves Xiquets de Valls", color: "#d71418",
+          castellKeys: ["4de9sf", "3de10fm!"] },
+        { nom: "Castellers de Sants", color: "#7e7e7e",
+          castellKeys: ["4de9f", "3de9f", "5de8"] },
+        { nom: "Capgrossos de Mataró", color: "#20418b",
+          castellKeys: ["4de9f", "5de8", "3de9f"] },
+        { nom: "Xiquets de Reus", color: "#966319",
+          castellKeys: ["3de9f", "4de9f", "5de8"] },
+        { nom: "Moixiganguers d’Igualada", color: "#8f3189",
+          castellKeys: ["4de9f", "3de9f!", "5de8"] },
+        { nom: "Castellers de Barcelona", color: "#c8102e",
+          castellKeys: ["5de8", "3de9f!", "4de9f"] },
+        { nom: "Xiquets de Tarragona", color: "#a23047",
+          castellKeys: ["4de9f", "3de9f", "7de8!"] },
+        { nom: "Castellers de la Vila de Gràcia", color: "#003e97",
+          castellKeys: ["2de8f", "5de8", "3de9f"] },
+        { nom: "Marrecs de Salt", color: "#6f93ce",
+          castellKeys: ["7de8", "5de8", "2de8f", "4de9f"] },
+        { nom: "Colla Castellera de Sant Pere i Sant Pau", color: "#00bda2",
+          castellKeys: ["5de8", "4de8a", "3de8"] },
+        { nom: "Nens del Vendrell", color: "#c43022",
+          castellKeys: ["3de8", "5de8", "7de8"] },
+        { nom: "Castellers de Lleida", color: "#8a1538",
+          castellKeys: ["7de8", "2de8f", "3de8"] },
+        { nom: "Sagals d’Osona", color: "#f36300",
+          castellKeys: ["3de8", "4de8", "2de8f"] },
+        { nom: "Castellers de Sabadell", color: "#276455",
+          castellKeys: ["3de8", "7de8", "4de8"] },
+        { nom: "Xics de Granollers", color: "#801c1c",
+          castellKeys: ["3de8", "7de8", "4de8"] },
+        { nom: "Bordegassos de Vilanova", color: "#fdc400",
+          castellKeys: ["3de8", "2de8f!", "4de8"] },
+        { nom: "Castellers de Sant Cugat", color: "#005c41",
+          castellKeys: ["7de8", "3de8!", "4de8"] },
+        { nom: "Colla Castellera Jove de Barcelona", color: "#700d17",
+          castellKeys: ["4de8", "9de7", "3de8", "2de7"] },
+        { nom: "Xicots de Vilafranca", color: "#d71317",
+          castellKeys: ["4de8", "3de8", "2de7"] },
+        { nom: "Xiquets del Serrallo", color: "#253271",
+          castellKeys: ["4de8", "2de8f", "3de7"] },
+        { nom: "Castellers de Castelldefels", color: "#e5d01e",
+          castellKeys: ["2de7", "4de8", "3de8!"] },
+        { nom: "Nois de la Torre", color: "#5e96c5",
+          castellKeys: ["5de7", "4de8", "2de7"] },
+        { nom: "Castellers de Terrassa", color: "#00b8e5",
+          castellKeys: ["2de7", "3de7s", "5de7"] },
+        { nom: "Castellers d’Esplugues", color: "#10549b",
+          castellKeys: ["3de7s", "9de7", "5de7"] },
+        { nom: "Colla Jove de Castellers de Sitges", color: "#691c32",
+          castellKeys: ["4de8!", "3de7s", "5de7"] },
+        { nom: "Castellers de la Sagrada Família", color: "#18bc9c",
+          castellKeys: ["5de7", "4de8", "7de7"] },
+        { nom: "Tirallongues de Manresa", color: "#4a4d8d",
+          castellKeys: ["5de7", "4de8", "7de7"] },
+        { nom: "Castellers d’Esparreguera", color: "#9f161d",
+          castellKeys: ["5de7", "3de7s", "7de7", "5de7a"] },
+        { nom: "Colla Castellera de Figueres", color: "#5f3b79",
+          castellKeys: ["5de7", "2de7", "7de7"] },
+        { nom: "Castellers de Cerdanyola", color: "#33a28a",
+          castellKeys: ["2de7", "4de7a", "3de7"] },
+        { nom: "Castellers de Sarrià", color: "#592733",
+          castellKeys: ["5de7", "7de7", "3de7a"] },
+        { nom: "Castellers de Badalona", color: "#fbbe49",
+          castellKeys: ["5de7", "7de7", "3de7a"] },
+        { nom: "Colla Castellera de l’Esquerra de l’Eixample", color: "#91409f",
+          castellKeys: ["7de7", "5de7", "3de7a"] },
+        { nom: "Castellers de Berga", color: "#3e497f",
+          castellKeys: ["3de7a", "5de7", "7de7"] },
+        { nom: "Castellers de Caldes de Montbui", color: "#026061",
+          castellKeys: ["5de7", "3de7a", "7de7"] },
+        { nom: "Esperxats de l’Estany", color: "#218a87",
+          castellKeys: ["7de7", "3de7a", "4de7a"] },
+        { nom: "Castellers de Mollet", color: "#91d6ac",
+          castellKeys: ["3de7a", "5de7", "3de7"] },
+        { nom: "Xiquets de Cambrils", color: "#781d1c",
+          castellKeys: ["4de7a", "5de7", "3de7"] },
+        { nom: "Castellers del Poble Sec", color: "#9aceff",
+          castellKeys: ["4de7a", "5de7!", "4de7"] },
+      ],
+    },
+  },
   {
     id: "santa-tecla-2026",
     label: "1r diumenge de Santa Tecla 2026",
@@ -721,7 +816,7 @@ const EXEMPLES = [
           castellKeys: ["3de10fm", "5de9f", "4de9f", "Pde7f!"] },
         { nom: "Castellers de Barcelona", color: "#c8102e",
           castellKeys: ["4de9f!", "2de8f!", "9de7"] },
-        { nom: "Xics de Granollers", color: "#00693e",
+        { nom: "Xics de Granollers", color: "#801c1c",
           castellKeys: ["3de8!", "4de7a", "2de7"] },
       ],
     },
@@ -800,13 +895,13 @@ function ComptadorCastells() {
 
   // Aplica un estat { taulaId, modeConcurs, acts:[{nom,color,castellKeys}] }
   // (enllaç o exemple): fixa la taula i reconstrueix les actuacions,
-  // normalitzant cada castell. Els exemples no porten modeConcurs i, per tant,
-  // respecten el que l'usuari tingui triat; els enllaços sempre el porten.
+  // normalitzant cada castell. Si no porta modeConcurs (exemples que no són
+  // del Concurs), el mode es desactiva; els enllaços sempre el porten.
   const aplicaEstat = (data) => {
     const t = TAULES.find((x) => x.id === data.taulaId) ?? TAULES[0];
     carregaExternaRef.current = true;
     setTaulaId(t.id);
-    if (data.modeConcurs != null) setModeConcurs(data.modeConcurs);
+    setModeConcurs(!!data.modeConcurs);
     setActuacions(construeixActuacions(t, data.acts, novaId));
   };
 
