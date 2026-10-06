@@ -685,7 +685,7 @@ const EXEMPLES = [
       taulaId: "2026",
       acts: [
         { nom: "Castellers de Vilafranca", color: "#00CC99",
-          castellKeys: ["3de9fa", "3de10f", "5de9f", "Pde8fm"] },
+          castellKeys: ["3de9fa", "3de10fm", "5de9f", "Pde8fm"] },
         { nom: "Colla Jove Xiquets de Tarragona", color: "#b588f2",
           castellKeys: ["5de9f", "4de9f", "3de9f", "Pde7f"] },
         { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
