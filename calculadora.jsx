@@ -585,6 +585,19 @@ function construeixActuacions(taula, acts, novaId) {
 // és opcional: si no hi és, el mode concurs es desactiva en carregar l'exemple.
 const EXEMPLES = [
   {
+    id: "santa-ursula-2026",
+    label: "Santa Úrsula 2026",
+    data: {
+      taulaId: "2026",
+      acts: [
+        { nom: "Colla Joves Xiquets de Valls", color: "#d71418",
+          castellKeys: ["4de9sf", "2de8sf!", "3de9f"] },
+        { nom: "Colla Vella dels Xiquets de Valls", color: "#d77577",
+          castellKeys: ["4de10fm!", "3de9sf!", "3de9f"] },
+      ],
+    },
+  },
+  {
     id: "concurs-2026",
     label: "Concurs de Castells 2026",
     data: {
